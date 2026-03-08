@@ -5,6 +5,7 @@ import io.qameta.allure.junit4.DisplayName;
 import io.restassured.response.Response;
 import org.junit.After;
 import org.junit.Test;
+import ru.yandex.praktikum.diplom.dto.AuthRegisterResponseDto;
 
 import javax.servlet.http.HttpServletResponse;
 
@@ -16,8 +17,20 @@ public class CreateUserTest extends BaseUserTest {
 
     @After
     public void tearDown() {
-        // Тут убираем за собой
-        userSteps.delete(email, password);
+        Response response = userSteps.login(email, password);
+        if (response.statusCode() == HttpServletResponse.SC_OK) {
+            String accessToken = response
+                    .body().as(AuthRegisterResponseDto.class)
+                    .getAccessToken();
+            Response deleteResponse = userSteps.delete(accessToken);
+            if (deleteResponse.statusCode() != HttpServletResponse.SC_ACCEPTED) {
+                System.out.println("Не удалось удалить пользователя");
+            }
+        } else if (response.statusCode() == HttpServletResponse.SC_UNAUTHORIZED) {
+            System.out.println("Пользователя не существует");
+        } else {
+            System.out.println("Неожиданный статус-код " + response.statusCode() + " при получении токена.");
+        }
     }
 
     @DisplayName("Регистрация пользователя")
